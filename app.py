@@ -42,17 +42,18 @@ def main():
     min_detection_confidence = args.min_detection_confidence
     min_tracking_confidence = args.min_tracking_confidence
 
-    joystick_origin_right = [400, 400]
-    joystick_origin_left = [400, 400]
-    joystick_deadzone_tolerance = 75
+    joystick_origin_right = [800, 200]
+    joystick_origin_left = [400, 200]
+    joystick_deadzone_tolerance = 40
     sensitivity_modifier = 1
     joystick_radius = 150
+    rt_level = 0
     gamepad = vg.VX360Gamepad()
 
     use_brect = True
 
     # Camera preparation ###############################################################
-    cap = cv.VideoCapture(cap_device)
+    cap = cv.VideoCapture(cap_device, cv.CAP_DSHOW)
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 
@@ -148,10 +149,13 @@ def main():
                     if handedness == "Right":
                         gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
                     if handedness == "Left":
-                        gamepad.right_trigger(value=255)
+                        #gamepad.right_trigger(value=255)
+                        rt_level += 30
                 else:
                     gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-                    gamepad.right_trigger(value=0)
+                    #gamepad.right_trigger(value=0)
+                    rt_level -= 10
+                rt_level = np.clip(rt_level, 0, 255)
                 if (math.dist(landmark_list[12], landmark_list[4]) < pressed_tolerance):
                     #print("pressed " + handedness + " middle")
                     if handedness == "Right":
@@ -199,9 +203,11 @@ def main():
                 else:
                     gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB)
 
+                gamepad.right_trigger(value=rt_level)
                 gamepad.update()
 
                 # Drawing part
+                # debug_image = draw_info(debug_image, rt_level)
                 debug_image = draw_origin(debug_image, joystick_origin_right, joystick_radius)
                 debug_image = draw_origin(debug_image, joystick_origin_left, joystick_radius)
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
@@ -440,6 +446,10 @@ def draw_landmarks(image, landmark_point):
 
     return image
 
+# def draw_info(image, rt_level):
+#     cv.putText(image, "RT Level:" + (str) (rt_level), (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
+    
+#     return image
 
 def draw_bounding_rect(use_brect, image, brect):
     if use_brect:
